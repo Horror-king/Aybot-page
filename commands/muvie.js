@@ -1,4 +1,3 @@
-// commands/muvie.js
 const axios = require('axios');
 
 const TMDB_API_KEY = '93920387cedc2f7a030b098b73e6799e'; // Replace this with your actual API key
@@ -37,7 +36,7 @@ module.exports = {
             const imageUrl = `https://image.tmdb.org/t/p/w500${posterPath}`;
 
             // 3. Send poster image
-            const messageData = {
+            const imageData = {
                 recipient: { id: senderId },
                 message: {
                     attachment: {
@@ -51,14 +50,30 @@ module.exports = {
             };
             await axios.post(
                 `https://graph.facebook.com/v17.0/me/messages?access_token=${pageAccessToken}`,
-                messageData
+                imageData
             );
 
             // 4. Send text with movie details
-            return `**${title}** (${releaseDate})\n\n${overview}\n\nGenres: ${genres}\nActors: ${actors}\nIMDb: ${imdb}`;
+            const textData = {
+                recipient: { id: senderId },
+                message: {
+                    text: `*${title}* (${releaseDate})\n\n${overview}\n\nGenres: ${genres}\nActors: ${actors}\nIMDb: ${imdb}`
+                }
+            };
+            await axios.post(
+                `https://graph.facebook.com/v17.0/me/messages?access_token=${pageAccessToken}`,
+                textData
+            );
         } catch (error) {
             console.error('TMDb API Error:', error.message);
-            return "Sorry, I couldn't fetch movie details right now.";
+            const errorData = {
+                recipient: { id: senderId },
+                message: { text: "Sorry, I couldn't fetch movie details right now." }
+            };
+            await axios.post(
+                `https://graph.facebook.com/v17.0/me/messages?access_token=${pageAccessToken}`,
+                errorData
+            );
         }
     },
 };
