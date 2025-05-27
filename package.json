@@ -10,6 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^22.13.11"
+    "@google/generative-ai": "^0.24.1",
+    "@types/node": "^22.13.11",
+    "axios": "^1.9.0",
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
   }
 }
