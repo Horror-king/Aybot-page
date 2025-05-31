@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const https = require('https');
+const https = require('https'); // This might not be strictly needed if you're deploying to a service that handles HTTPS, but kept for completeness
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
@@ -602,7 +602,7 @@ app.post('/webhook', async (req, res) => {
                             if (command) {
                                 console.log(`Executing command: ${commandName} for ${senderId}`);
                                 // Pass necessary functions to command.execute
-                                await command.execute(senderId, args, bot.pageAccessToken, sendFacebookMessage, loadCommands, PREFIX);
+                                await command.execute(senderId, args, bot.pageAccessToken, sendFacebookMessage, loadCommands);
                                 // Commands are responsible for sending their own responses
                             } else {
                                 const response = `Unknown command: \`${PREFIX}${commandName}\`.`;
@@ -718,54 +718,11 @@ app.listen(port, () => {
     });
 });
 
-module.exports = {
-    name: 'delete',
-    description: 'Deletes a command file. Usage: -delete <commandName.js>',
-    async execute(senderId, args, pageAccessToken, sendFacebookMessage, loadCommands, PREFIX) {
-        // --- Admin check added here ---
-        if (!ADMIN_UIDS.includes(senderId)) {
-            return await sendFacebookMessage(senderId, `🚫 You are not authorized to use this command. Only administrators can delete commands.`, pageAccessToken);
-        }
-        // --- End of Admin check ---
-
-        if (args.length !== 1) {
-            return await sendFacebookMessage(senderId, `Usage: ${PREFIX}delete <commandName.js>`, pageAccessToken);
-        }
-
-        const fileName = args[0];
-
-        if (!fileName.endsWith('.js')) {
-            return await sendFacebookMessage(senderId, `Invalid file name. Please ensure it ends with '.js' (e.g., 'mycommand.js').`, pageAccessToken);
-        }
-
-        const commandFilePath = path.join(__dirname, fileName);
-        const commandName = fileName.slice(0, -3).toLowerCase(); // For confirmation message
-
-        try {
-            // Check if the file exists before attempting to delete
-            if (!fs.existsSync(commandFilePath)) {
-                return await sendFacebookMessage(senderId, `❌ Command file '${fileName}' not found.`, pageAccessToken);
-            }
-
-            // Prevent deleting essential commands (like delete, install, help, load, restart)
-            const protectedCommands = ['delete.js', 'install.js', 'help.js', 'load.js', 'restart.js'];
-            if (protectedCommands.includes(fileName.toLowerCase())) {
-                return await sendFacebookMessage(senderId, `⛔️ Cannot delete essential command '${fileName}'.`, pageAccessToken);
-            }
-
-            fs.unlinkSync(commandFilePath); // Delete the file
-
-            // Reload all commands to remove the deleted one from memory
-            if (typeof loadCommands === 'function') {
-                loadCommands();
-            } else {
-                console.warn("loadCommands function not passed to delete command.");
-            }
-
-            return await sendFacebookMessage(senderId, `✅ Command '${commandName}' (file: ${fileName}) deleted successfully!`, pageAccessToken);
-        } catch (error) {
-            console.error(`Error deleting command ${fileName}:`, error);
-            return await sendFacebookMessage(senderId, `❌ Failed to delete command '${fileName}'. Error: ${error.message}`, pageAccessToken);
-        }
-    },
-};
+// --- Export necessary variables for commands to access ---
+// These exports must be at the very end of index.js, before any other unrelated code.
+module.exports.ADMIN_UIDS = ADMIN_UIDS;
+module.exports.PREFIX = PREFIX;
+module.exports.sendFacebookMessage = sendFacebookMessage;
+module.exports.loadCommands = loadCommands;
+module.exports.db = db; // Export db if commands need direct database access
+// Add any other exports necessary for your commands
