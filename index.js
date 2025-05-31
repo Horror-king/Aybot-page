@@ -1,14 +1,19 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const https = require('https');
-const fs = require('fs');
-const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// --- Admin Configuration ---
+// IMPORTANT: Replace with actual Facebook User IDs of your administrators.
+// For production, consider loading these from environment variables or a secure configuration.
+const ADMIN_UIDS = ['YOUR_ADMIN_UID_1', 'YOUR_ADMIN_UID_2']; // <<< REPLACE WITH ACTUAL ADMIN UIDs
 
 // --- Ensure directories exist ---
 const publicDir = path.join(__dirname, 'public');
@@ -243,8 +248,8 @@ async function refreshAccessToken(refreshToken) {
         const FB_APP_SECRET = "2a781d05db8ac5c12f0b7b660f8df93f"; // <<< REMEMBER TO CHANGE THIS
 
         if (FB_APP_ID === "YOUR_FACEBOOK_APP_ID" || FB_APP_SECRET === "YOUR_FACEBOOK_APP_SECRET") {
-             console.warn('⚠️ Facebook App ID or App Secret not configured. Token refresh might fail.');
-             // Optionally, throw an error or handle this more gracefully if these are mandatory for your setup.
+               console.warn('⚠️ Facebook App ID or App Secret not configured. Token refresh might fail.');
+               // Optionally, throw an error or handle this more gracefully if these are mandatory for your setup.
         }
 
 
@@ -712,3 +717,55 @@ app.listen(port, () => {
         }
     });
 });
+
+module.exports = {
+    name: 'delete',
+    description: 'Deletes a command file. Usage: -delete <commandName.js>',
+    async execute(senderId, args, pageAccessToken, sendFacebookMessage, loadCommands, PREFIX) {
+        // --- Admin check added here ---
+        if (!ADMIN_UIDS.includes(senderId)) {
+            return await sendFacebookMessage(senderId, `🚫 You are not authorized to use this command. Only administrators can delete commands.`, pageAccessToken);
+        }
+        // --- End of Admin check ---
+
+        if (args.length !== 1) {
+            return await sendFacebookMessage(senderId, `Usage: ${PREFIX}delete <commandName.js>`, pageAccessToken);
+        }
+
+        const fileName = args[0];
+
+        if (!fileName.endsWith('.js')) {
+            return await sendFacebookMessage(senderId, `Invalid file name. Please ensure it ends with '.js' (e.g., 'mycommand.js').`, pageAccessToken);
+        }
+
+        const commandFilePath = path.join(__dirname, fileName);
+        const commandName = fileName.slice(0, -3).toLowerCase(); // For confirmation message
+
+        try {
+            // Check if the file exists before attempting to delete
+            if (!fs.existsSync(commandFilePath)) {
+                return await sendFacebookMessage(senderId, `❌ Command file '${fileName}' not found.`, pageAccessToken);
+            }
+
+            // Prevent deleting essential commands (like delete, install, help, load, restart)
+            const protectedCommands = ['delete.js', 'install.js', 'help.js', 'load.js', 'restart.js'];
+            if (protectedCommands.includes(fileName.toLowerCase())) {
+                return await sendFacebookMessage(senderId, `⛔️ Cannot delete essential command '${fileName}'.`, pageAccessToken);
+            }
+
+            fs.unlinkSync(commandFilePath); // Delete the file
+
+            // Reload all commands to remove the deleted one from memory
+            if (typeof loadCommands === 'function') {
+                loadCommands();
+            } else {
+                console.warn("loadCommands function not passed to delete command.");
+            }
+
+            return await sendFacebookMessage(senderId, `✅ Command '${commandName}' (file: ${fileName}) deleted successfully!`, pageAccessToken);
+        } catch (error) {
+            console.error(`Error deleting command ${fileName}:`, error);
+            return await sendFacebookMessage(senderId, `❌ Failed to delete command '${fileName}'. Error: ${error.message}`, pageAccessToken);
+        }
+    },
+};
