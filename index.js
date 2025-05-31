@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 // --- Admin Configuration ---
 // IMPORTANT: Replace with actual Facebook User IDs of your administrators.
 // For production, consider loading these from environment variables or a secure configuration.
-const ADMIN_UIDS = ['YOUR_ADMIN_UID_1', 'YOUR_ADMIN_UID_2']; // <<< REPLACE WITH ACTUAL ADMIN UIDs
+const ADMIN_UIDS = ['61555393416824', 'YOUR_ADMIN_UID_2']; // <<< REPLACE WITH ACTUAL ADMIN UIDs
 
 // --- Ensure directories exist ---
 const publicDir = path.join(__dirname, 'public');
