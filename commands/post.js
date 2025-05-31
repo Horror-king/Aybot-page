@@ -4,6 +4,16 @@ module.exports = {
     name: 'post',
     description: 'Posts a message to the Facebook Page. Usage: -post <Your message here>',
     async execute(senderId, args, pageAccessToken, sendFacebookMessage, loadCommands, PREFIX) {
+        // Assume ADMIN_UIDS is accessible, e.g., imported from the main index.js or passed.
+        // For simplicity, we'll assume it's imported for standalone command files.
+        const { ADMIN_UIDS } = require('../index'); // Adjust path as needed
+
+        // --- Admin check added here ---
+        if (!ADMIN_UIDS.includes(senderId)) {
+            return await sendFacebookMessage(senderId, `🚫 You are not authorized to use this command. Only administrators can post messages to the page.`, pageAccessToken);
+        }
+        // --- End of Admin check ---
+
         if (args.length === 0) {
             return await sendFacebookMessage(senderId, `Usage: ${PREFIX}post <Your message here>`, pageAccessToken);
         }
